@@ -35,8 +35,9 @@ app.use('/db', dbRouter);
 app.use('/auth', authRouter);
 app.use('/planning', planningRouter);
 app.use('/shipping', shippingRouter);
-app.use('/inventory', inventoryRouter);
+// Read-only convenience endpoints for UI pages
 app.use('/', readRouter);
+app.use('/inventory', inventoryRouter);
 app.use('/demo', demoRouter);
 
 async function main() {

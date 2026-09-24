@@ -5,6 +5,7 @@ import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import GuardedRoute from './components/GuardedRoute';
 import DemoCriticalPage from './pages/DemoCriticalPage';
+import CargoTraceabilityPage from './pages/CargoTraceabilityPage';
 
 import TopNav from './components/TopNav';
 
@@ -40,6 +41,17 @@ export default function App() {
             <GuardedRoute>
               <Layout>
                 <DemoCriticalPage />
+              </Layout>
+            </GuardedRoute>
+          }
+        />
+
+        <Route
+          path="/cargo/:cargoId"
+          element={
+            <GuardedRoute>
+              <Layout>
+                <CargoTraceabilityPage />
               </Layout>
             </GuardedRoute>
           }
