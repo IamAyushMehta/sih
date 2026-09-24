@@ -10,6 +10,12 @@ import { authRouter } from './routes/auth';
 import { planningRouter } from './routes/planning';
 import { shippingRouter } from './routes/shipping';
 import { inventoryRouter } from './routes/inventory';
+import { readRouter } from './routes/read';
+
+
+declare const require: any;
+
+const _ = require; // no-op to satisfy TS when shims exist
 import { demoRouter } from './routes/demo';
 
 
@@ -30,6 +36,7 @@ app.use('/auth', authRouter);
 app.use('/planning', planningRouter);
 app.use('/shipping', shippingRouter);
 app.use('/inventory', inventoryRouter);
+app.use('/', readRouter);
 app.use('/demo', demoRouter);
 
 async function main() {

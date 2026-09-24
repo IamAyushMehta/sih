@@ -6,6 +6,17 @@ import DashboardPage from './pages/DashboardPage';
 import GuardedRoute from './components/GuardedRoute';
 import DemoCriticalPage from './pages/DemoCriticalPage';
 
+import TopNav from './components/TopNav';
+
+function Layout({ children }: { children: any }) {
+  return (
+    <div>
+      <TopNav />
+      {children}
+    </div>
+  );
+}
+
 export default function App() {
   return (
     <BrowserRouter>
@@ -16,7 +27,9 @@ export default function App() {
           path="/dashboard"
           element={
             <GuardedRoute>
-              <DashboardPage />
+              <Layout>
+                <DashboardPage />
+              </Layout>
             </GuardedRoute>
           }
         />
@@ -25,7 +38,9 @@ export default function App() {
           path="/demo"
           element={
             <GuardedRoute>
-              <DemoCriticalPage />
+              <Layout>
+                <DemoCriticalPage />
+              </Layout>
             </GuardedRoute>
           }
         />
