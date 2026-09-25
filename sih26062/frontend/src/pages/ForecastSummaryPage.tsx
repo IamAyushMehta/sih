@@ -14,6 +14,7 @@ export default function ForecastSummaryPage() {
     const paramStationId = searchParams.get('stationId');
     if (paramStationId) setStationId(paramStationId);
   }, [searchParams]);
+
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<any | null>(null);
@@ -41,9 +42,6 @@ export default function ForecastSummaryPage() {
     }
   }
 
-  useEffect(() => {
-    // no-op
-  }, []);
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
