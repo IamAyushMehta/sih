@@ -1,0 +1,1 @@
+{"version":3,"file":"runSqlFile.js","sourceRoot":"","sources":["../../src/db/runSqlFile.ts"],"names":[],"mappings":";;;;;;AAAA,2DAA6B;AAC7B,iCAA8B;AAEvB,KAAK,qBAAqB,QAAgB;IAC/C,MAAM,GAAG,GAAG,MAAM,kBAAE,CAAC,QAAQ,CAAC,QAAQ,EAAE,MAAM,CAAC,CAAC;IAChD,qEAAqE;IACrE,MAAM,WAAI,CAAC,KAAK,CAAC,GAAG,CAAC,CAAC;AACxB,CAAC"}

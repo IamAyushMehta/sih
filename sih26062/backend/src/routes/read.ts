@@ -334,9 +334,12 @@ readRouter.get(
     );
 
     const inventoryAtRisk = await pool.query(
-      `SELECT COUNT(DISTINCT station_id, item_id) as cnt
-       FROM inventory inv
-       WHERE inv.quantity <= inv.safety_stock;`
+      `SELECT COUNT(*) as cnt
+       FROM (
+         SELECT DISTINCT inv.station_id, inv.item_id
+         FROM inventory inv
+         WHERE inv.quantity <= inv.safety_stock
+       ) t;`
     );
 
     const stations = await pool.query('SELECT COUNT(*) as cnt FROM stations;');

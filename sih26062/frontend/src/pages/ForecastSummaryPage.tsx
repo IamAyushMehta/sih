@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 
 import { loadAuth } from '../state/auth';
 import { api } from '../api/client';
@@ -6,7 +7,13 @@ import { api } from '../api/client';
 export default function ForecastSummaryPage() {
   const auth = loadAuth();
 
+  const [searchParams] = useSearchParams();
   const [stationId, setStationId] = useState('');
+
+  useEffect(() => {
+    const paramStationId = searchParams.get('stationId');
+    if (paramStationId) setStationId(paramStationId);
+  }, [searchParams]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<any | null>(null);

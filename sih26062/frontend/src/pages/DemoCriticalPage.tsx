@@ -22,9 +22,6 @@ export default function DemoCriticalPage() {
       const r = await demoRun(auth.token, {});
       setResult(r);
 
-      if (r?.ids?.manifestId) {
-        navigate(`/manifests/${r.ids.manifestId}/stowage`);
-      }
     } catch (e: any) {
       setError(e?.response?.data?.error ? String(e.response.data.error) : e?.message ?? String(e));
     } finally {
@@ -56,7 +53,39 @@ export default function DemoCriticalPage() {
 
           {result ? (
             <div className="mt-5 space-y-4">
-              <div>
+              <div className="space-y-3">
+                <div className="flex flex-wrap gap-3">
+                  {result?.ids?.cargoId ? (
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/cargo/${result.ids.cargoId}`)}
+                      className="rounded bg-indigo-500 hover:bg-indigo-400 px-4 py-2 font-medium text-sm"
+                    >
+                      View Cargo Traceability
+                    </button>
+                  ) : null}
+
+                  {result?.ids?.manifestId ? (
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/manifests/${result.ids.manifestId}/stowage`)}
+                      className="rounded bg-slate-800 hover:bg-slate-700 border border-slate-700 px-4 py-2 font-medium text-sm"
+                    >
+                      View Stowage Plan
+                    </button>
+                  ) : null}
+
+                  {result?.ids?.stationId ? (
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/forecast/summary?stationId=${encodeURIComponent(result.ids.stationId)}`)}
+                      className="rounded bg-slate-800 hover:bg-slate-700 border border-slate-700 px-4 py-2 font-medium text-sm"
+                    >
+                      View Forecast Summary
+                    </button>
+                  ) : null}
+                </div>
+
                 <h2 className="font-semibold">Created</h2>
                 <pre className="mt-2 rounded border border-slate-800 bg-slate-950 p-3 text-xs overflow-auto">
                   {JSON.stringify(result.ids, null, 2)}
