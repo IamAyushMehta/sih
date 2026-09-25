@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 import { demoRun } from '../api/demo';
 import { loadAuth } from '../state/auth';
 
 export default function DemoCriticalPage() {
+  const navigate = useNavigate();
   const auth = loadAuth();
 
   const [busy, setBusy] = useState(false);
@@ -19,6 +21,10 @@ export default function DemoCriticalPage() {
     try {
       const r = await demoRun(auth.token, {});
       setResult(r);
+
+      if (r?.ids?.manifestId) {
+        navigate(`/manifests/${r.ids.manifestId}/stowage`);
+      }
     } catch (e: any) {
       setError(e?.response?.data?.error ? String(e.response.data.error) : e?.message ?? String(e));
     } finally {
