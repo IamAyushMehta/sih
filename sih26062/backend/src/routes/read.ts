@@ -145,4 +145,214 @@ readRouter.get(
   }
 );
 
+readRouter.get(
+  '/shipping/manifests/:manifestId/stowage',
+  requireAuth,
+  requireRole(['ADMIN', 'PLANNER', 'LOGISTICS', 'MEDICAL']),
+  async (req, res) => {
+    const { manifestId } = req.params;
+
+    const manifestRow = await pool.query(
+      'SELECT m.id as manifest_id, v.voyage_code, s.name as station_name, '
+        + '       sp.algorithm_version, sp.explanation_json, sp.created_at '
+        + 'FROM manifests m '
+        + 'JOIN voyages v ON v.id = m.voyage_id '
+        + 'JOIN stations s ON s.id = v.destination_station_id '
+        + 'LEFT JOIN stowage_plans sp ON sp.manifest_id = m.id '
+        + 'WHERE m.id = $1;',
+      [manifestId]
+    );
+
+    if (manifestRow.rows.length === 0) {
+      return res.status(404).json({ error: 'Manifest not found' });
+    }
+
+    const manifest = manifestRow.rows[0];
+
+    const positions = await pool.query(
+      'SELECT '
+        + 'sp.id as stowage_position_id, '
+        + 'sp.stowage_zone, '
+        + 'sp.stowage_deck, '
+        + 'sp.stowage_position, '
+        + 'sp.loading_sequence, '
+        + 'sp.unloading_sequence, '
+        + 'sp.constraints_notes, '
+        + 'mi.id as manifest_item_id, '
+        + 'ci.cargo_id, '
+        + 'c.cargo_code, '
+        + 'it.item_code, '
+        + 'it.name as item_name, '
+        + 'ci.qty, '
+        + 'ci.unit, '
+        + 'ci.unloading_priority '
+        + 'FROM stowage_positions sp '
+        + 'JOIN manifest_items mi ON mi.id = sp.manifest_item_id '
+        + 'JOIN cargo_items ci ON ci.id = mi.cargo_item_id '
+        + 'JOIN cargo c ON c.id = ci.cargo_id '
+        + 'JOIN items it ON it.id = ci.item_id '
+        + 'WHERE sp.stowage_plan_id = (SELECT id FROM stowage_plans WHERE manifest_id = $1) '
+        + 'ORDER BY sp.loading_sequence;',
+      [manifestId]
+    );
+
+    const items = positions.rows.map((row) => ({
+      loadingSequence: row.loading_sequence,
+      unloadingSequence: row.unloading_sequence,
+      stowageZone: row.stowage_zone,
+      stowageDeck: row.stowage_deck,
+      stowagePosition: row.stowage_position,
+      constraintsNotes: row.constraints_notes,
+      cargoCode: row.cargo_code,
+      itemCode: row.item_code,
+      itemName: row.item_name,
+      quantity: row.qty,
+      unit: row.unit,
+      unloadingPriority: row.unloading_priority,
+    }));
+
+    res.json({
+      manifest: {
+        id: manifest.manifest_id,
+        voyageCode: manifest.voyage_code,
+        destinationStation: manifest.station_name,
+        stowagePlan: manifest.algorithm_version
+          ? {
+              algorithmVersion: manifest.algorithm_version,
+              explanation: manifest.explanation_json,
+              createdAt: manifest.created_at,
+            }
+          : null,
+      },
+      positions: items,
+    });
+  }
+);
+
+readRouter.get(
+  '/inventory/stations/:stationId/forecast-summary',
+  requireAuth,
+  requireRole(['ADMIN', 'PLANNER', 'LOGISTICS', 'MEDICAL']),
+  async (req, res) => {
+    const { stationId } = req.params;
+    const asOfDate = new Date().toISOString().slice(0, 10);
+
+    const inventoryItems = await pool.query(
+      'SELECT i.id as item_id, i.item_code, i.name, i.unit, inv.quantity '
+        + 'FROM inventory inv '
+        + 'JOIN items i ON i.id = inv.item_id '
+        + 'WHERE inv.station_id = $1 '
+        + 'ORDER BY i.item_code;',
+      [stationId]
+    );
+
+    const nextResupplyRes = await pool.query(
+      'SELECT MAX(planned_resupply_date) as next_resupply_date '
+        + 'FROM requirements WHERE station_id = $1 AND planned_resupply_date IS NOT NULL;',
+      [stationId]
+    );
+
+    const nextResupplyDate = nextResupplyRes.rows[0].next_resupply_date;
+
+    const summary = [];
+
+    for (const item of inventoryItems.rows) {
+      const avgRow = await pool.query(
+        'SELECT AVG(quantity_consumed) as avg_daily, COUNT(*) as cnt '
+          + 'FROM consumption_records '
+          + 'WHERE station_id = $1 AND item_id = $2 '
+          + '  AND consumption_date >= ($3::date - INTERVAL \'30 days\')::date;',
+        [stationId, item.item_id, asOfDate]
+      );
+
+      const avg = avgRow.rows[0].avg_daily as number | null;
+      const cnt = avgRow.rows[0].cnt as number;
+
+      let riskLevel = 'SAFE';
+      let daysRemaining: number | null = null;
+      let estimatedDepletionDate: string | null = null;
+      let shortfallDays: number | null = null;
+
+      if (avg && cnt > 0 && avg > 0) {
+        daysRemaining = Number(item.quantity) / avg;
+
+        if (nextResupplyDate) {
+          const daysToNextResupply = Math.floor(
+            (new Date(nextResupplyDate).getTime() - new Date(asOfDate).getTime()) / (24 * 60 * 60 * 1000)
+          );
+          shortfallDays = daysToNextResupply - daysRemaining;
+
+          if (daysRemaining <= 0 || shortfallDays > 0) {
+            riskLevel = 'CRITICAL';
+          } else {
+            const closeness = Math.abs(shortfallDays);
+            if (closeness <= 15) riskLevel = 'AT_RISK';
+            else if (closeness <= 45) riskLevel = 'WATCH';
+            else riskLevel = 'SAFE';
+          }
+
+          estimatedDepletionDate = new Date(
+            new Date(asOfDate).getTime() + Math.floor(daysRemaining * 24 * 60 * 60 * 1000)
+          ).toISOString().slice(0, 10);
+        }
+      }
+
+      summary.push({
+        itemId: item.item_id,
+        itemCode: item.item_code,
+        itemName: item.name,
+        unit: item.unit,
+        currentStock: Number(item.quantity),
+        averageDailyConsumption: avg,
+        daysRemaining,
+        estimatedDepletionDate,
+        nextResupplyDate,
+        shortfallDays,
+        riskLevel,
+      });
+    }
+
+    const stationRow = await pool.query('SELECT station_code, name FROM stations WHERE id = $1;', [stationId]);
+    const station = stationRow.rows[0] ?? null;
+
+    res.json({
+      station,
+      nextResupplyDate,
+      summary,
+      asOfDate,
+    });
+  }
+);
+
+readRouter.get(
+  '/dashboard/summary',
+  requireAuth,
+  requireRole(['ADMIN', 'PLANNER', 'LOGISTICS', 'MEDICAL']),
+  async (_req, res) => {
+    const cargoAwaitingReceipt = await pool.query(
+      'SELECT COUNT(*) as cnt FROM cargo WHERE status IN (\'IN_TRANSIT\', \'ARRIVED\');'
+    );
+
+    const inventoryAtRisk = await pool.query(
+      `SELECT COUNT(DISTINCT station_id, item_id) as cnt
+       FROM inventory inv
+       WHERE inv.quantity <= inv.safety_stock;`
+    );
+
+    const stations = await pool.query('SELECT COUNT(*) as cnt FROM stations;');
+
+    const recentIndents = await pool.query(
+      'SELECT COUNT(*) as cnt FROM indents WHERE created_at >= NOW() - INTERVAL \'7 days\';'
+    );
+
+    res.json({
+      cargoAwaitingReceipt: Number(cargoAwaitingReceipt.rows[0].cnt),
+      inventoryAtRisk: Number(inventoryAtRisk.rows[0].cnt),
+      stations: Number(stations.rows[0].cnt),
+      recentIndents: Number(recentIndents.rows[0].cnt),
+      timestamp: new Date().toISOString(),
+    });
+  }
+);
+
 export default readRouter;

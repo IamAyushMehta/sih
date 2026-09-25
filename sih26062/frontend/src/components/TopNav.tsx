@@ -12,8 +12,15 @@ export default function TopNav() {
         <div className="font-semibold text-slate-100">SIH26062</div>
 
         <nav className="flex items-center gap-4 text-sm">
-          <NavLink to="/dashboard" active={loc.pathname === '/dashboard'}>Dashboard</NavLink>
-          <NavLink to="/demo" active={loc.pathname === '/demo'}>Demo</NavLink>
+          <NavLink to="/dashboard" active={loc.pathname === '/dashboard'}>
+            Dashboard
+          </NavLink>
+          <NavLink to="/demo" active={loc.pathname === '/demo'}>
+            Demo
+          </NavLink>
+          <NavLink to="/forecast" active={loc.pathname === '/forecast'}>
+            Forecast
+          </NavLink>
         </nav>
 
         <div className="ml-auto">
@@ -32,14 +39,20 @@ export default function TopNav() {
   );
 }
 
-function NavLink({ to, active, children }: { to: string; active: boolean; children: any }) {
+function NavLink({
+  to,
+  active,
+  children,
+}: {
+  to: string;
+  active: boolean;
+  children: any;
+}) {
   return (
     <Link
       to={to}
       className={
-        active
-          ? 'text-indigo-300 font-medium'
-          : 'text-slate-300 hover:text-slate-100'
+        active ? 'text-indigo-300 font-medium' : 'text-slate-300 hover:text-slate-100'
       }
     >
       {children}

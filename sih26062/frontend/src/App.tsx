@@ -6,6 +6,10 @@ import DashboardPage from './pages/DashboardPage';
 import GuardedRoute from './components/GuardedRoute';
 import DemoCriticalPage from './pages/DemoCriticalPage';
 import CargoTraceabilityPage from './pages/CargoTraceabilityPage';
+import ForecastPage from './pages/ForecastPage';
+import ForecastSummaryPage from './pages/ForecastSummaryPage';
+import StowagePlanPage from './pages/StowagePlanPage';
+import ManifestListPage from './pages/ManifestListPage';
 
 import TopNav from './components/TopNav';
 
@@ -47,11 +51,55 @@ export default function App() {
         />
 
         <Route
+          path="/forecast"
+          element={
+            <GuardedRoute>
+              <Layout>
+                <ForecastPage />
+              </Layout>
+            </GuardedRoute>
+          }
+        />
+
+        <Route
+          path="/forecast/summary"
+          element={
+            <GuardedRoute>
+              <Layout>
+                <ForecastSummaryPage />
+              </Layout>
+            </GuardedRoute>
+          }
+        />
+
+        <Route
           path="/cargo/:cargoId"
           element={
             <GuardedRoute>
               <Layout>
                 <CargoTraceabilityPage />
+              </Layout>
+            </GuardedRoute>
+          }
+        />
+
+        <Route
+          path="/manifests"
+          element={
+            <GuardedRoute>
+              <Layout>
+                <ManifestListPage />
+              </Layout>
+            </GuardedRoute>
+          }
+        />
+
+        <Route
+          path="/manifests/:manifestId/stowage"
+          element={
+            <GuardedRoute>
+              <Layout>
+                <StowagePlanPage />
               </Layout>
             </GuardedRoute>
           }
